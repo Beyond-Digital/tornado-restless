@@ -611,10 +611,10 @@ class BaseHandler(RequestHandler):
         """
 
         # Include Columns
-        if self.include_columns is not None:
-            values = {k: self.get_body_argument(k) for k in self.include_columns}
-        else:
-            values = {k: v for k, v in self.get_body_arguments().items()}
+        # if self.include_columns is not None:
+        #     values = {k: self.get_body_argument(k) for k in self.include_columns}
+        # else:
+        values = {k: v for k, v in self.get_body_arguments().items()}
 
         # Exclude "q"
         if "q" in values:
