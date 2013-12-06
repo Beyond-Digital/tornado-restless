@@ -283,37 +283,42 @@ class BaseHandler(RequestHandler):
             :statuscode 404: Error
         """
         try:
-            with self.model.session.begin_nested():
-                values = self.get_argument_values()
+            #with self.model.session.begin_nested():
+            # Fabio: removed nested transaction because it does not
+            # work with sqlite.
+            # See: http://stackoverflow.com/questions/2036378/using-savepoints-in-python-sqlite3
+            # and: https://groups.google.com/forum/#!topic/sqlalchemy-devel/0lanNjxSpb0
 
-                # Call Preprocessor
-                self._call_preprocessor(instance_id=instance_id, data=values)
+            values = self.get_argument_values()
 
-                # Get Instance
-                instance = self.model.get(instance_id)
+            # Call Preprocessor
+            self._call_preprocessor(instance_id=instance_id, data=values)
 
-                # Set Values
-                for (key, value) in values.items():
-                    self.logger.debug("%r.%s => %s" % (instance, key, value))
-                    setattr(instance, key, value)
+            # Get Instance
+            instance = self.model.get(instance_id)
 
-                # Flush
-                try:
-                    self.model.session.flush()
-                except SQLAlchemyError as ex:
-                    logging.exception(ex)
-                    self.model.session.rollback()
-                    self.send_error(status_code=400, exc_info=sys.exc_info())
-                    return
+            # Set Values
+            for (key, value) in values.items():
+                self.logger.debug("%r.%s => %s" % (instance, key, value))
+                setattr(instance, key, value)
 
-                # Refresh
-                self.model.session.refresh(instance)
+            # Flush
+            try:
+                self.model.session.flush()
+            except SQLAlchemyError as ex:
+                logging.exception(ex)
+                self.model.session.rollback()
+                self.send_error(status_code=400, exc_info=sys.exc_info())
+                return
 
-                # Set Status
-                self.set_status(201, "Patched")
+            # Refresh
+            self.model.session.refresh(instance)
 
-                # To Dict
-                return self.to_dict(instance)
+            # Set Status
+            self.set_status(201, "Patched")
+
+            # To Dict
+            return self.to_dict(instance)
         except SQLAlchemyError as ex:
             logging.exception(ex)
             self.send_error(status_code=400, exc_info=sys.exc_info())
